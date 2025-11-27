@@ -1,0 +1,20 @@
+# This file demonstrates the creation and usage of tuples in Nim, including their definition as procedure return types and accessing elements by name or index.
+proc makePerson(): tuple[name: string, age: int] =
+  result = (name: "Sam", age: 32)
+
+# If you really want a string representation:
+proc personToString(): string =
+  let p = makePerson()
+  result = "Name: " & p.name & ", Age: " & $p.age
+
+# Usage
+let p = makePerson()
+echo "Name: ", p.name
+echo "Age: ", p.age
+echo "First field: ", p[0]
+echo "Second field: ", p[1]
+
+# If you need the string version:
+let s = personToString()
+echo "Result:\n", s
+

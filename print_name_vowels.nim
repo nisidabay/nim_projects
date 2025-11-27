@@ -1,0 +1,12 @@
+# Print the vowels of a name
+let name = "Carlos Lacaci Moya"
+var result: seq[char] = @[]
+
+for letter in name:
+  case letter
+  of ['a', 'e', 'i', 'o', 'u']:
+    result.add(letter)
+  else:
+    discard
+echo "original name: ", name
+echo "vowels in name: ", result

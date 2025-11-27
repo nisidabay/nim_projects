@@ -1,0 +1,6 @@
+import std/nre
+
+let text = "I have 3 cats and 5 dogs"
+let result = replace(text, re"\d+", "many")
+echo result
+

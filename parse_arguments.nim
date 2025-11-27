@@ -1,0 +1,29 @@
+import os, strutils
+
+proc showHelp() =
+ echo "Usage: greet [name] [--loud]"
+ echo " --loud  Print in uppercase"
+
+proc main() =
+ let args = commandLineParams()
+ if args.len == 0 or "--help" in args or "-h" in args:
+  showHelp()
+  return
+
+ var name = "World"
+ var loud = false
+
+ for arg in args:
+  if arg == "--loud":
+   loud = true
+  elif not arg.startsWith("-"):
+   name = arg
+
+ var greeting = "Hello, " & name & "!"
+ if loud:
+  greeting = greeting.toUpperAscii()
+ echo greeting
+
+when isMainModule:
+ main()
+
