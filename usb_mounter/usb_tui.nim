@@ -1,0 +1,279 @@
+import ncurses, os, osproc, strutils
+
+# Default mount point for USB devices
+const MOUNT_POINT = "/media/nim_usb"
+
+# Executes a shell command and returns its output and exit code
+proc runCommand(cmd: string): tuple[output: string, exitCode: int] =
+  execCmdEx(cmd)
+
+# Mounts the specified block device to the default mount point
+proc doMount(device: string): string =
+  if device == "":
+    return "Error: Please specify a device (e.g., /dev/sdb1)"
+
+  # Verify that the given path is a valid block device
+  # let (_, checkCode) = runCommand("test -b " & quoteShell(device) & " && echo 'block'")
+  let (_, checkCode) = runCommand("test -b " & quoteShell(device))
+  if checkCode != 0:
+    return "Error: " & device & " does not exist or is not a valid block device."
+
+  # Create the mount point directory if it doesn't exist
+  if not dirExists(MOUNT_POINT):
+    let (err, code) = runCommand("sudo mkdir -p " & quoteShell(MOUNT_POINT))
+    if code != 0:
+      return "Failed to create mount point: " & err
+
+  # Attempt to mount the device
+  let (output, exitCode) = runCommand("sudo mount " & quoteShell(device) & " " &
+      quoteShell(MOUNT_POINT))
+  if exitCode == 0:
+    let (lsOutput, _) = runCommand("stat " & quoteShell(MOUNT_POINT))
+    return "USB successfully mounted at " & MOUNT_POINT & "!\n" & lsOutput
+  else:
+    var msg = "Mount failed: " & output
+    # Try to detect the filesystem type for troubleshooting
+    let (fsType, _) = runCommand("sudo blkid -o value -s TYPE " & quoteShell(device))
+    let fs = fsType.strip()
+    if fs != "":
+      msg.add("\nDetected filesystem: " & fs)
+      if fs == "ntfs":
+        msg.add("\nTry: sudo mount -t ntfs-3g " & device & " " & MOUNT_POINT)
+      elif fs == "exfat":
+        msg.add("\nTry: sudo mount -t exfat " & device & " " & MOUNT_POINT)
+      elif fs == "ext4":
+        msg.add("\nTry: sudo mount -t ext4 " & device & " " & MOUNT_POINT)
+    else:
+      msg.add("\nTry specifying the filesystem type manually: sudo mount -t <type> " &
+          device & " " & MOUNT_POINT)
+    return msg
+
+# Unmounts a device or the default mount point
+proc doUmount(device: string): string =
+  let target = if device == "": MOUNT_POINT else: device
+  let (output, exitCode) = runCommand("sudo umount " & quoteShell(target))
+  if exitCode == 0:
+    return "USB successfully unmounted!"
+  else:
+    return output & "\nTry forcing unmount: sudo umount -l " & target
+
+# Reads a string input from the user in ncurses (supports backspace)
+proc readInput(win: PWindow, prompt: string, y, x: cint): string =
+  discard mvwprintw(win, y, x, "%s", prompt.cstring)
+  discard wrefresh(win)
+  var input = ""
+  while true:
+    let ch = wgetch(win)
+    if ch == KEY_ENTER or ch == 10: # Enter
+      break
+    elif ch == KEY_BACKSPACE or ch == 127 or ch == 8: # Backspace
+      if input.len > 0:
+        input = input[0 ..< input.high]
+        let newX = x + cint(prompt.len) + cint(input.len)
+        discard mvwprintw(win, y, newX, " ") # Erase char
+        discard wmove(win, y, newX) # Move cursor back
+    elif ch >= 32 and ch <= 126: # Printable char
+      input.add(char(ch))
+      let cursorX = x + cint(prompt.len) + cint(input.len) - 1
+      discard mvwaddch(win, y, cursorX, chtype(ch))
+    discard wrefresh(win)
+  return input.strip()
+
+# Displays text in a subwindow with scrolling support
+proc displayOutput(stdscr: PWindow, title: string, content: string) =
+  var maxY, maxX: cint
+  getmaxyx(stdscr, maxY, maxX)
+
+  # Use 80% of screen size, with minimums
+  let height = max(10, (maxY * 8) div 10)
+  let width = max(30, (maxX * 8) div 10)
+  let startY = (maxY - height) div 2
+  let startX = (maxX - width) div 2
+
+  var subwin = newwin(height, width, startY, startX)
+  discard box(subwin, 0, 0)
+  discard wattron(subwin, cint(A_BOLD))
+  discard mvwprintw(subwin, 1, 2, "%s", title.cstring)
+  discard wattroff(subwin, cint(A_BOLD))
+
+  let lines = content.splitLines()
+  var offset = 0
+
+  let contentStartY = 3 # leave a blank line after title
+  let contentEndY = height - 3 # reserve one full line for footer
+  let maxLines = max(0, int(contentEndY - contentStartY + 1))
+
+  while true:
+    # Clear content area
+    for row in contentStartY .. contentEndY:
+      discard wmove(subwin, row.cint, 1)
+      for col in 1 ..< int(width - 1):
+        discard waddch(subwin, ' '.cuint)
+    # Clear footer line
+    for col in 1 ..< int(width - 1):
+      discard mvwaddch(subwin, height - 2, col.cint, ' '.cuint)
+
+    # Display visible lines
+    for i in 0 ..< maxLines:
+      let lineIdx = offset + i
+      if lineIdx < lines.len:
+        var displayLine = lines[lineIdx]
+        if displayLine.len > int(width) - 4:
+          displayLine = displayLine[0 ..< (int(width) - 7)] & "..."
+        discard mvwprintw(subwin, cint(contentStartY + i), 2, "%s",
+            displayLine.cstring)
+
+    # Footer
+    var footer: string
+    if lines.len > maxLines:
+      footer = "Press any key to close"
+    else:
+      footer = "Press any key to continue..."
+    if footer.len > int(width) - 4:
+      footer = footer[0 ..< (int(width) - 7)] & "..."
+    discard mvwprintw(subwin, height - 2, 2, "%s", footer.cstring)
+
+    discard box(subwin, 0, 0)
+    discard wrefresh(subwin)
+
+    let ch = wgetch(subwin)
+
+    if lines.len > maxLines:
+      if ch == KEY_UP and offset > 0:
+        offset -= 1
+        continue
+      elif ch == KEY_DOWN and offset < lines.len - maxLines:
+        offset += 1
+        continue
+
+    break
+
+  discard delwin(subwin)
+
+# Display help in TUI
+proc displayHelp(stdscr: PWindow) =
+  let helpText = """USB Mounter TUI
+
+FEATURES:
+  1. Mount       - Mount a USB device to /media/nim_usb
+  2. Unmount     - Unmount the mounted device
+  3. List Devices- Show removable block devices (lsblk)
+  4. Help        - Show this help screen
+  5. Exit        - Close the application
+
+USAGE NOTES:
+  - The script must be run as root.
+  - Only ONE USB device can be mounted at a time to /media/nim_usb.
+  - Use 'List Devices' to identify your USB (e.g., /dev/sdb1).
+  - Supported filesystems: ext4, ntfs, exfat, and more.
+  - If mounting fails, try specifying the filesystem type manually.
+"""
+
+  displayOutput(stdscr, "Help & Instructions", helpText)
+
+# Runs the TUI mode using ncurses
+proc mainMenu() =
+  # Pre-authenticate sudo to avoid password prompts during TUI
+  let (output, _) = runCommand("whoami")
+  if output.strip() != "root":
+    echo "Error: Run as root!"
+    discard clear()
+    quit(1)
+
+  let stdscr = initscr()
+  discard cbreak()
+  discard noecho()
+  discard keypad(stdscr, true)
+  discard start_color()
+  discard init_pair(1, COLOR_CYAN, COLOR_BLACK)
+  discard init_pair(2, COLOR_GREEN, COLOR_BLACK)
+
+  var maxY, maxX: cint
+  getmaxyx(stdscr, maxY, maxX)
+
+  let menuItems = ["1. Mount USB Device",
+                   "2. Unmount Device",
+                   "3. List Block Devices",
+                   "4. Help",
+                   "5. Exit"]
+  var selected = 0
+
+  while true:
+    discard clear()
+
+    # Title
+    discard wattron(stdscr, cint(A_BOLD or COLOR_PAIR(1)))
+    discard mvprintw(1, (maxX div 2) - 15, "   USB MOUNTER - TUI MODE   ")
+    discard wattroff(stdscr, cint(A_BOLD or COLOR_PAIR(1)))
+
+    discard wattron(stdscr, cint(COLOR_PAIR(2)))
+    discard mvprintw(5, (maxX div 2) - 15, "Mount Point: %s",
+        MOUNT_POINT.cstring)
+    discard wattroff(stdscr, cint(COLOR_PAIR(2)))
+
+    # Menu items
+    for i, item in menuItems:
+      if i == selected:
+        discard wattron(stdscr, cint(A_REVERSE or A_BOLD))
+      discard mvprintw(cint(i) + 7, (maxX div 2) - 15, "  %s", item.cstring)
+      if i == selected:
+        discard wattroff(stdscr, cint(A_REVERSE or A_BOLD))
+
+    discard mvprintw(maxY - 2, 2, "Use arrow keys to navigate, Enter to select, 'q' to quit")
+    discard refresh()
+
+    let key = getch()
+    case key
+    of KEY_UP:
+      selected = max(0, selected - 1)
+    of KEY_DOWN:
+      selected = min(menuItems.high, selected + 1)
+    of KEY_ENTER, 10, 13: # Enter
+      case selected
+      of 0: # Mount
+        let (lsblkOut, _) = runCommand("lsblk -o NAME,RM,SIZE,TYPE,MOUNTPOINT | grep ' 1 '")
+        displayOutput(stdscr, "Available Block Devices", lsblkOut)
+        var promptWin = newwin(7, 70, (maxY div 2) - 3, (maxX div 2) - 35)
+        discard box(promptWin, 0, 0)
+        discard wattron(promptWin, cint(A_BOLD))
+        discard mvwprintw(promptWin, 1, 2, "Mount USB Device")
+        discard wattroff(promptWin, cint(A_BOLD))
+        discard mvwprintw(promptWin, 2, 2, "Enter device path (e.g., /dev/sdb1)")
+        let dev = readInput(promptWin, "> ", 4, 2)
+        discard delwin(promptWin)
+        if dev != "":
+          let result = doMount(dev)
+          displayOutput(stdscr, "Mount Result", result)
+      of 1: # Unmount
+        let (mountOut, _) = runCommand("mount | grep " & quoteShell(MOUNT_POINT))
+        displayOutput(stdscr, "Currently Mounted Devices", mountOut)
+        if mountOut != "":
+          var promptWin = newwin(7, 70, (maxY div 2) - 3, (maxX div 2) - 35)
+          discard box(promptWin, 0, 0)
+          discard wattron(promptWin, cint(A_BOLD))
+          discard mvwprintw(promptWin, 1, 2, "Unmount Device")
+          discard wattroff(promptWin, cint(A_BOLD))
+          discard mvwprintw(promptWin, 2, 2, "Device or mountpoint (leave empty for default)")
+          let dev = readInput(promptWin, "> ", 4, 2)
+          discard delwin(promptWin)
+          let result = doUmount(dev)
+          displayOutput(stdscr, "Unmount Result", result)
+      of 2: # List Devices
+        let (lsblkOut, _) = runCommand("lsblk -o NAME,RM,SIZE,TYPE,MOUNTPOINT | grep ' 1 '")
+        var output = lsblkOut & "\n"
+        output = strip(output)
+        displayOutput(stdscr, "Block Device Information", output)
+      of 3: # Help
+        displayHelp(stdscr)
+      of 4: # Exit
+        break
+      else: discard
+    of 'q'.ord, 'Q'.ord:
+      break
+    else: discard
+
+  discard endwin()
+
+# Main entry point: always launch TUI (no CLI mode)
+when isMainModule:
+  mainMenu()
