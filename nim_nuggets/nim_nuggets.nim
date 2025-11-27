@@ -11,6 +11,7 @@ import std/osproc
 
 # --- Configuration ---
 const Separator = "•••"
+const BaseDir = "bin"
 const AppDirName = "nim_nuggets"
 const DefaultLinkName = "default_nugget.txt"
 const Editor = getEnv("EDITOR", "nvim")
@@ -23,7 +24,6 @@ type
     preview: string
 
 # --- Visuals (Simulating Rich Library) ---
-
 proc longestLineLength(text: string): int =
   var maxLen = 0
   for line in text.splitLines():
@@ -34,7 +34,7 @@ proc longestLineLength(text: string): int =
 proc printPanel(text: string, title: string = "",
     color: ForegroundColor = fgYellow, borderColor: ForegroundColor = fgBlue) =
   let contentMaxLen = longestLineLength(text)
-  let titleWidth = if title.len > 0: title.len + 2 else: 0       # " title "
+  let titleWidth = if title.len > 0: title.len + 2 else: 0
 
   # Panel inner width should fit content or title, whichever is longer
   # Add 2 for left/right padding (1 space on each side)
@@ -76,15 +76,15 @@ proc printPanel(text: string, title: string = "",
   stdout.resetAttributes()
 
 proc printError(msg: string) =
-  printPanel(fmt"💣{msg}", "Error", fgRed, fgRed)
+  printPanel(fmt"{msg}", "Error", fgRed, fgRed)
 
 proc printSuccess(msg: string) =
-  printPanel(fmt"👍{msg}", "Success", fgGreen, fgBlue)
+  printPanel(fmt"{msg}", "Success", fgGreen, fgBlue)
 
 # --- System Helpers ---
 
 proc getNuggetsDir(): string =
-  result = joinPath(getHomeDir(), "bin", AppDirName)
+  result = joinPath(getHomeDir(), BaseDir, AppDirName)
   if not dirExists(result):
     createDir(result)
 
@@ -218,7 +218,7 @@ proc openTopicInEditor(topicName: string) =
   let exitCode = execCmd(fmt"{Editor} {quoteShell(nuggetPath)}")
 
   if exitCode == 0:
-    printSuccess(fmt"Nugget ({nuggetPath}) edited.")
+    printSuccess("Edited:" & fmt"Nugget ({nuggetPath}).")
 
 proc handleSearchResults(results: seq[SearchResult], query: string) =
   ## Displays search results in fzf and handles selection
