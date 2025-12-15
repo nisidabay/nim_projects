@@ -4,4 +4,3 @@ nimcache/
 
 # Compiled binaries
 calc
-tests/test_calculator
