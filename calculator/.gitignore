@@ -1,0 +1,7 @@
+# Nim build artifacts
+nimcache/
+*.out
+
+# Compiled binaries
+calc
+tests/test_calculator
