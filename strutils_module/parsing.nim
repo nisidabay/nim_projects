@@ -1,5 +1,7 @@
-# This file demonstrates how to parse "convert" various data types into strings
-# using strutils module
+# Nim
+# 
+# Convert various string types into its real value.
+
 import strutils
 
 echo parseInt("42")

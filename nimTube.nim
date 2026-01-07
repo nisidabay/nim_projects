@@ -1,5 +1,8 @@
 import osproc, os, strformat
 
+## downloadVideo - description placeholder
+## Params: (add parameters description)
+## Returns: (add return description)
 proc downloadVideo(url: string, outputPath: string = "downloads") =
   ## Downloads a YouTube video using yt-dlp
   try:

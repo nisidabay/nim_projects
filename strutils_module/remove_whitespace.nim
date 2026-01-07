@@ -1,4 +1,8 @@
-# Remove whitespaces
+# Nim
+#
+# So while they all start with "strip", they each control whether to strip
+# leading, trailing, or both types of whitespace.
+
 import strutils
 
 let messy = "  \t Hello \n "

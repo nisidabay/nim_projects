@@ -1,15 +1,10 @@
-#[ 
-The when statement is almost identical to the if statement, but with these
-differences:
-Each condition must be a constant expression since it is evaluated by the
-compiler.
-The statements within a branch do not open a new scope.
-The compiler checks the semantics and produces code only for the statements
-that belong to the first condition that evaluates to true.
-The when statement is useful for writing platform-specific code, similar to the
-fdef construct in the C programming language.
-]#
-
+# The "when" statement is like "if," but it has these special rules: It uses
+ # only simple answers (like numbers or fixed choices) and doesn't start a new
+ # place where you can use different names for things. Only one of its answers
+ # can be true at the same time, so the computer only does what that answer
+ # says. This is helpful if you need to follow different instructions on
+ # computers with different features.
+ #
 when system.hostOS == "windows":
   echo "running on Windows!"
 elif system.hostOS == "linux":

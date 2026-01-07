@@ -1,12 +1,7 @@
-# nim_journal.nim — FIXED fmt string issue
-import std/strutils
-import std/strformat
-import std/times
-import std/terminal
-import std/os
-import std/osproc
-import std/json
-import std/sequtils
+# Nim - Journal
+#
+# Journal app using json as storage
+import std/[strutils, strformat, times, terminal, os, osproc, json, sequtils]
 
 const
   JournalBaseDir = "bin"
@@ -20,18 +15,24 @@ type
     topic: string
     body: string
 
+# Create the base dir and json file if not already
 proc ensureJournalSetup() =
   if not dirExists(JournalDir): createDir(JournalDir)
   if not fileExists(JournalFile): writeFile(JournalFile, "[]")
 
+
+# Load entries in the journal
 proc loadEntries(): seq[JournalEntry] =
   ensureJournalSetup()
   let raw = readFile(JournalFile)
+
   if raw.strip() in ["", "[]"]: return @[]
   try:
     let node = parseJson(raw)
     for i in 0..<node.len:
       let e = node[i]
+
+      # Fill with default values if missing
       result.add JournalEntry(
         id: e{"id"}.getInt(i),
         timestamp: e{"timestamp"}.getStr("unknown"),
@@ -40,16 +41,20 @@ proc loadEntries(): seq[JournalEntry] =
       )
   except: return @[]
 
-proc saveEntries(es: seq[JournalEntry]) =
+# Save entries in the journal
+proc saveEntries(entries: seq[JournalEntry]) =
   ensureJournalSetup()
   var arr = newJArray()
-  for e in es:
+
+  for e in entries:
     arr.add(%*{
       "id": e.id,
       "timestamp": e.timestamp,
       "topic": e.topic,
       "body": e.body
     })
+
+  # Replace the previous journal file
   let tmp = JournalFile & ".tmp"
   try:
     writeFile(tmp, $arr)
@@ -57,12 +62,12 @@ proc saveEntries(es: seq[JournalEntry]) =
     moveFile(tmp, JournalFile)
   except: raise
 
-proc nextId(es: seq[JournalEntry]): int =
-  if es.len == 0: 1 else: es.mapIt(it.id).max() + 1
+proc nextId(entry: seq[JournalEntry]): int =
+  if entry.len == 0: 1 else: entry.mapIt(it.id).max() + 1
 
-proc longestLineLength(t: string): int =
-  for line in t.splitLines():
-    result = max(result, line.len)
+proc longestLineLength(line: string): int =
+  for l in line.splitLines():
+    result = max(result, l.len)
 
 proc printPanel(t: string, title = "", color = fgYellow, borderColor = fgBlue) =
   let maxLine = longestLineLength(t)
@@ -99,6 +104,9 @@ proc printPanel(t: string, title = "", color = fgYellow, borderColor = fgBlue) =
 proc printError(msg: string) = printPanel(msg, "Error", fgRed, fgRed)
 proc printSuccess(msg: string) = printPanel(msg, "Success", fgGreen, fgBlue)
 
+## runFzf - description placeholder
+## Params: (add parameters description)
+## Returns: (add return description)
 proc runFzf(opts: seq[string], prompt: string): string =
   if opts.len == 0: return ""
   let now = getTime().toUnix()
@@ -113,11 +121,17 @@ proc runFzf(opts: seq[string], prompt: string): string =
     for p in [tin, tout]:
       if fileExists(p): discard tryRemoveFile(p)
 
+## truncateLine - description placeholder
+## Params: (add parameters description)
+## Returns: (add return description)
 proc truncateLine(s: string, maxLen = 30): string =
   let t = s.strip()
   if t.len == 0: return "(empty)"
   if t.len > maxLen: t[0 .. maxLen-1] & "…" else: t
 
+## formatOption - description placeholder
+## Params: (add parameters description)
+## Returns: (add return description)
 proc formatOption(i: int, e: JournalEntry): string =
   let lines = e.body.splitLines()
   let nonEmpty = lines.filterIt(it.strip() != "")
@@ -125,6 +139,9 @@ proc formatOption(i: int, e: JournalEntry): string =
   fmt"{i:03} | {e.id:03} | {e.topic} | {preview}"
 
 # ✅ FIXED: Use string concatenation instead of nested fmt
+## addEntry - description placeholder
+## Params: (add parameters description)
+## Returns: (add return description)
 proc addEntry() =
   stdout.write("Topic: ")
   let topic = stdin.readLine().strip()
@@ -160,6 +177,9 @@ proc addEntry() =
   saveEntries(entries)
   printSuccess(fmt"Saved entry #{newId}")
 
+## listEntries - description placeholder
+## Params: (add parameters description)
+## Returns: (add return description)
 proc listEntries() =
   let es = loadEntries()
   if es.len == 0: printError("No entries"); return
@@ -179,6 +199,9 @@ proc listEntries() =
       printPanel(display, fmt"Entry {i}")
   except: printError("Invalid")
 
+## searchEntries - description placeholder
+## Params: (add parameters description)
+## Returns: (add return description)
 proc searchEntries(q: string) =
   let query = if q.len > 0: q else: (stdout.write("Search: "); stdin.readLine().strip())
   if query.len == 0: return
@@ -210,6 +233,9 @@ proc searchEntries(q: string) =
       printPanel(display, fmt"Match {i}")
   except: printError("Invalid")
 
+## deleteEntry - description placeholder
+## Params: (add parameters description)
+## Returns: (add return description)
 proc deleteEntry() =
   let es = loadEntries()
   if es.len == 0: printError("No entries"); return
@@ -233,6 +259,9 @@ proc deleteEntry() =
     printSuccess(fmt"Deleted #{e.id}")
   except: printError("Invalid")
 
+## showHelp - description placeholder
+## Params: (add parameters description)
+## Returns: (add return description)
 proc showHelp() =
   echo """
   Activity journal
@@ -245,6 +274,9 @@ proc showHelp() =
   -h          → help
 """
 
+## main - description placeholder
+## Params: (add parameters description)
+## Returns: (add return description)
 proc main() =
   let args = commandLineParams()
   if args.len == 0 or args[0] == "-a": addEntry()

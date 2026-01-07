@@ -1,4 +1,6 @@
-# hash.sh.nim
+# Nim
+#
+# Show the hash of files
 import os, strutils, streams, osproc
 
 proc hashFile(fname: string): string =

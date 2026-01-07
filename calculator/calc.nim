@@ -1,4 +1,6 @@
-import strutils, std/[terminal]
+# Nim - Calculator
+
+import std/[terminal, strutils]
 
 type
   Op* = enum
@@ -95,7 +97,7 @@ proc processLine*(state: var CalculatorState, line: string): string =
   of Bad:
     return "Invalid input: '" & line & "'. Type 'h' or 'help' for usage."
 
-  return "" # No message
+  return ""
 
 proc runCalc() =
   var state = CalculatorState(result: 0.0, memory: 0.0)

@@ -1,6 +1,4 @@
 # nim_concepts_demo.nim
-# Demonstrates key Nim concepts with explanations, pitfalls, and best practices.
-# Compatible with Nim 2.2.4
 
 # =============================================================================
 # 1. TYPE ALIASES vs DISTINCT TYPES

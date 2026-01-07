@@ -1,4 +1,8 @@
+# Nim
+#
+# String convertion
 import strutils
+
 echo toLowerAscii('A')
 echo toLowerAscii("Foo BAR!")
 

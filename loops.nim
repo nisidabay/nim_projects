@@ -1,6 +1,6 @@
-# This file demonstrates various looping constructs in Nim, including inclusive
-# and exclusive `for` loops for iterating over ranges and collections, and
-# `while` loops for conditional iteration. foor loops
+# Nim
+#
+# Various looping constructs in Nim. 
 
 # Inclusive loops
 for i in 0..3:
@@ -9,7 +9,7 @@ for i in 0..3:
 for fruit in ["apple", "banana", "cherry"]:
   echo "I like ", fruit
 
-# Excluive loops, until number 9
+# Exclusive loops, until number 9
 for i in 0..<10:
   echo "Count: ", i
 

@@ -1,4 +1,5 @@
-# This file demonstrates various string manipulation procedures from the `strutils` module in Nim, focusing on padding and alignment.
+# Nim
+#
 # It showcases `alignLeft`, `align` (right-align), `center`, and `repeat`
 # procedures, including the use of custom fill characters. Use of padding and
 # alignment
@@ -6,12 +7,12 @@ import strutils
 
 let word = "Nim"
 
-echo word.alignLeft(10) # left-aligned
-echo word.align(10) # right-aligned
-echo word.center(10)
+echo "Left aligned: ", word.alignLeft(10) # left-aligned
+echo "Right aligned: ", word.align(10) # right-aligned
+echo "Centered: ", word.center(10)
 
-echo word.repeat(3)
+echo "Repeat: ", word.repeat(3)
 
-echo word.align(8, '.')
-echo word.alignLeft(8, '!')
+echo "Right aligned with padding: ", word.align(8, '.')
+echo "Left aligned with padding: ", word.alignLeft(8, '!')
 

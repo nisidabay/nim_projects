@@ -1,3 +1,5 @@
+# Nim
+#
 # Uniform function call syntax
 proc plus(x, y: int): int =
   return x + y

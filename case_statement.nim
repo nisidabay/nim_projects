@@ -4,15 +4,15 @@ import strutils
 
 let numbers: seq[int] = @[1, 3, 5, 7, 12, 2, 34]
 
-proc checknumbers(numbers: seq[int]) =
-  for x in numbers:
-    case x
+proc checknumbers[T](numbers: openArray[T]) =
+  for num in numbers:
+    case num
     of 1, 3, 5, 7:
-      echo "Odd numbers: ", x
+      echo "Odd numbers: ", num
     of 2, 12, 34:
-      echo "Even numbers: ", x
+      echo "Even numbers: ", num
     else:
-      echo "Unknown number: ", x
+      echo "Unknown number: ", num
 
 checknumbers(numbers)
 
@@ -21,9 +21,9 @@ proc userConfirmation(): bool =
   stdout.flushFile()
   let response = readLine(stdin).strip().toLowerAscii()
   case response
-  of "Y", "y":
+  of "Y".toLowerAscii():
     return true
-  of "N", "n":
+  of "N".toLowerAscii():
     return false
   else:
     return false

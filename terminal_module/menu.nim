@@ -1,3 +1,7 @@
+# Nim
+#
+# Create a menu
+
 import std/terminal
 import std/strformat
 
@@ -8,6 +12,9 @@ import std/strformat
 
 const menuItems = ["Start service", "View logs", "Exit"]
 
+## renderMenu - description placeholder
+## Params: (add parameters description)
+## Returns: (add return description)
 proc renderMenu() =
   eraseScreen()
   setCursorPos(0, 0)
@@ -16,6 +23,9 @@ proc renderMenu() =
     echo fmt"{i+1}. {item}"
   echo "Press a number to select an option."
 
+## run - description placeholder
+## Params: (add parameters description)
+## Returns: (add return description)
 proc run() =
   while true:
     renderMenu()

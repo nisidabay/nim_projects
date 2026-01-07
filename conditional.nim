@@ -1,14 +1,18 @@
-# This file demonstrates various conditional statements in Nim, including `if/elif/else` for range-based conditions and `case` expressions for discrete value matching.
+# Nim
+#
 # Use of conditionals
-let temperature = 22
-let day = "Fri"
+let temperature = 5
+let day = "Sun"
+
+# ternary-like logic
+let status = if temperature > 20: "Warm" else: "Cold"
 
 if temperature > 30:
-  echo "It's hot!"
+  echo status
 elif temperature > 20:
-  echo "It's pleasant"
+  echo status
 else:
-  echo "It's cool."
+  echo status
 
 
 case day

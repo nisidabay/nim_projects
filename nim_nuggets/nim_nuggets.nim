@@ -1,6 +1,7 @@
 # Nim
 #
 # nim_nuggets refresher utility to learn Nim
+
 import std/strutils
 import std/strformat
 import std/random
@@ -23,7 +24,11 @@ type
     snippet: string
     preview: string
 
-# --- Visuals (Simulating Rich Library) ---
+# --- Helper for printPanel ---
+## Calculates the length of the longest line in a given string.
+## Params:
+##   text: The multi-line string to analyze.
+## Returns: The integer length of the longest line.
 proc longestLineLength(text: string): int =
   var maxLen = 0
   for line in text.splitLines():
@@ -31,6 +36,13 @@ proc longestLineLength(text: string): int =
       maxLen = line.len
   result = maxLen
 
+# --- Print a fancy panel around text ---
+## Prints a string of text inside a decorative, colored panel in the terminal.
+## Params:
+##   text: The main content to display inside the panel.
+##   title: An optional title to display in the panel's top border.
+##   color: The foreground color for the main text.
+##   borderColor: The foreground color for the panel's border.
 proc printPanel(text: string, title: string = "",
     color: ForegroundColor = fgYellow, borderColor: ForegroundColor = fgBlue) =
   let contentMaxLen = longestLineLength(text)
@@ -75,22 +87,38 @@ proc printPanel(text: string, title: string = "",
   stdout.write("╯\n")
   stdout.resetAttributes()
 
+# --- Print error panel ---
+## Displays an error message in a standardized red panel.
+## Params:
+##   msg: The error message string to display.
 proc printError(msg: string) =
   printPanel(fmt"{msg}", "Error", fgRed, fgRed)
 
+# --- Print success panel ---
+## Displays a success message in a standardized green and blue panel.
+## Params:
+##   msg: The success message string to display.
 proc printSuccess(msg: string) =
   printPanel(fmt"{msg}", "Success", fgGreen, fgBlue)
 
 # --- System Helpers ---
-
+## Gets the absolute path to the nuggets directory (~/bin/nim_nuggets).
+## Creates the directory if it does not already exist.
+## Returns: The string path to the nuggets directory.
 proc getNuggetsDir(): string =
   result = joinPath(getHomeDir(), BaseDir, AppDirName)
   if not dirExists(result):
     createDir(result)
 
+## Gets the absolute path for the default nugget symlink.
+## This file acts as a pointer to the currently active nugget topic.
+## Returns: The string path for the default_nugget.txt link file.
 proc getDefaultLinkPath(): string =
   joinPath(getNuggetsDir(), DefaultLinkName)
 
+## Gets the path of the currently active nugget file.
+## It resolves the symlink that points to the active topic.
+## Returns: The string path to the active nugget file, or an empty string if none.
 proc getActiveNuggetPath(): string =
   let link = getDefaultLinkPath()
   # check if symlink or regular file exists
@@ -102,6 +130,10 @@ proc getActiveNuggetPath(): string =
       return link
   return ""
 
+## Sets the active nugget topic.
+## It removes any existing link and creates a new symlink to the target path.
+## Params:
+##   targetPath: The absolute path to the nugget file to set as active.
 proc setActiveNugget(targetPath: string) =
   let link = getDefaultLinkPath()
   if symlinkExists(link) or fileExists(link):
@@ -111,20 +143,23 @@ proc setActiveNugget(targetPath: string) =
   printSuccess(fmt"Switched topic to: {extractFilename(targetPath)}")
 
 # --- FZF Integration ---
-
+## Runs the fzf command-line fuzzy finder with a given list of options.
+## Params:
+##   options: A sequence of strings to use as the choices in fzf.
+##   prompt: The prompt to display within the fzf interface.
+## Returns: The item selected by the user, or an empty string if nothing was selected.
 proc runFzf(options: seq[string], prompt: string): string =
   if options.len == 0:
     return ""
 
-  # Write options to a temporary file
-  let tempInput = getTempDir() / fmt"fzf_input_{getTime().toUnix}.txt"
+  let input = options.join("\n")
   let tempOutput = getTempDir() / fmt"fzf_output_{getTime().toUnix}.txt"
 
   try:
-    writeFile(tempInput, options.join("\n"))
-
-    # Build fzf command - using shell redirection for proper terminal interaction
-    let cmd = fmt"fzf --prompt {quoteShell(prompt)} --height 40% --layout reverse --border < {quoteShell(tempInput)} > {quoteShell(tempOutput)}"
+    # Build fzf command, piping options via printf to fzf's stdin.
+    # The selected output is redirected to a temporary file.
+    let fzfPart = fmt"fzf --prompt {quoteShell(prompt)} --height 40% --layout reverse --border"
+    let cmd = fmt"printf '%s' {quoteShell(input)} | {fzfPart} > {quoteShell(tempOutput)}"
 
     let exitCode = execCmd(cmd)
 
@@ -135,14 +170,13 @@ proc runFzf(options: seq[string], prompt: string): string =
       result = ""
 
   finally:
-    # Cleanup temp files
-    if fileExists(tempInput):
-      removeFile(tempInput)
+    # Cleanup temp file
     if fileExists(tempOutput):
       removeFile(tempOutput)
 
 # --- Core Logic ---
-
+## Scans the nuggets directory for all available topic files.
+## Returns: A sequence of strings, where each string is a nugget filename (e.g., "topic.txt").
 proc getAllTopics(): seq[string] =
   let directory = getNuggetsDir()
   for kind, path in walkDir(directory):
@@ -150,6 +184,11 @@ proc getAllTopics(): seq[string] =
       result.add(extractFilename(path))
   result
 
+## Reads a nugget file and splits its content into a sequence of snippets.
+## Snippets in the file are delimited by the Separator constant ("•••").
+## Params:
+##   path: The path to the nugget file to load.
+## Returns: A sequence of strings, where each string is a snippet.
 proc loadSnippets(path: string): seq[string] =
   if not fileExists(path): return @[]
   let content = readFile(path)
@@ -161,17 +200,25 @@ proc loadSnippets(path: string): seq[string] =
       result.add(cleaned)
 
 # --- Search Helper Functions ---
-
+## Gets a search query.
+## Returns the provided search term, or if it's empty, prompts the user to enter one.
+## Params:
+##   searchTerm: The search term passed via command line, if any.
+## Returns: The search term to be used for the search.
 proc getSearchQuery(searchTerm: string): string =
-  ## Gets search query from parameter or prompts user
   if searchTerm.len > 0:
     return searchTerm
 
   stdout.write("Enter search term: ")
   result = stdin.readLine().strip()
 
+## Creates a short, single-line preview from a snippet.
+## It takes the first line and truncates it if it exceeds a max length.
+## Params:
+##   snippet: The full snippet text.
+##   maxLen: The maximum length of the preview string.
+## Returns: A truncated, single-line preview of the snippet.
 proc createSnippetPreview(snippet: string, maxLen: int = 60): string =
-  ## Creates a truncated preview of a snippet
   let lines = snippet.splitLines()
   let firstLine = if lines.len > 0: lines[0] else: snippet
 
@@ -180,8 +227,12 @@ proc createSnippetPreview(snippet: string, maxLen: int = 60): string =
   else:
     result = firstLine
 
+## Searches all topics for snippets containing a query.
+## The search is case-insensitive.
+## Params:
+##   query: The term to search for within snippets.
+## Returns: A sequence of `SearchResult` objects for all matching snippets.
 proc searchAllTopics(query: string): seq[SearchResult] =
-  ## Searches all topics for snippets containing the query (case-insensitive)
   let topics = getAllTopics()
 
   for topicFile in topics:
@@ -197,13 +248,21 @@ proc searchAllTopics(query: string): seq[SearchResult] =
           preview: createSnippetPreview(snippet)
         ))
 
+## Formats a list of search results for display in fzf.
+## Each line is formatted as: "index | [topic] preview..."
+## Params:
+##   results: The sequence of `SearchResult` objects to format.
+## Returns: A sequence of strings ready to be displayed by fzf.
 proc formatSearchResultsForFzf(results: seq[SearchResult]): seq[string] =
-  ## Formats search results for fzf display
   for i, res in pairs(results):
     result.add(fmt"{i} | [{res.topic}] {res.preview}")
 
+## Extracts the result index from a line selected in fzf.
+## It parses the integer that appears before the first " | ".
+## Params:
+##   selection: The raw string line selected by the user in fzf.
+## Returns: The zero-based integer index of the selection, or -1 on parsing failure.
 proc parseSearchSelection(selection: string): int =
-  ## Extracts the result index from fzf selection
   let parts = selection.split(" | ")
   if parts.len > 0:
     try:
@@ -212,16 +271,23 @@ proc parseSearchSelection(selection: string): int =
       return -1
   return -1
 
+## Opens a topic file in the editor defined by the EDITOR environment variable.
+## Params:
+##   topicName: The name of the topic to edit (e.g., "my_topic").
 proc openTopicInEditor(topicName: string) =
-  ## Opens a topic file in the configured editor
   let nuggetPath = joinPath(getNuggetsDir(), topicName & ".txt")
   let exitCode = execCmd(fmt"{Editor} {quoteShell(nuggetPath)}")
 
   if exitCode == 0:
     printSuccess("Edited:" & fmt"Nugget ({nuggetPath}).")
 
+## Manages the search result user interface flow.
+## Displays search results in fzf, waits for user selection, and opens the
+## selected snippet's topic in the editor.
+## Params:
+##   results: A sequence of `SearchResult` objects to display.
+##   query: The original search query, used for the fzf prompt.
 proc handleSearchResults(results: seq[SearchResult], query: string) =
-  ## Displays search results in fzf and handles selection
   let options = formatSearchResultsForFzf(results)
   let selection = runFzf(options, fmt"Search: '{query}'")
 
@@ -237,7 +303,7 @@ proc handleSearchResults(results: seq[SearchResult], query: string) =
     printError("Invalid selection")
 
 # --- Actions ---
-
+## Lets the user change the active nugget topic using fzf.
 proc changeTopic() =
   let topics = getAllTopics()
   if topics.len == 0:
@@ -249,6 +315,7 @@ proc changeTopic() =
     let fullPath = joinPath(getNuggetsDir(), selection)
     setActiveNugget(fullPath)
 
+## Opens the currently active nugget file in the configured editor.
 proc editNugget() =
   let current = getActiveNuggetPath()
   if current.len == 0:
@@ -259,6 +326,9 @@ proc editNugget() =
   if exitCode == 0:
     printSuccess("Nugget edited.")
 
+## Creates a new nugget topic.
+## Prompts the user for a new topic name, creates the corresponding file,
+## and sets it as the active nugget.
 proc newNugget() =
   stdout.write("Enter new topic name (no extension): ")
   let name = stdin.readLine().strip()
@@ -275,6 +345,7 @@ proc newNugget() =
     printSuccess(fmt"Created {filename}")
     setActiveNugget(path)
 
+## Selects and displays a random snippet from the currently active nugget file.
 proc randomSnippet() =
   let current = getActiveNuggetPath()
   if current.len == 0:
@@ -292,6 +363,19 @@ proc randomSnippet() =
 
   printPanel(snippet, fmt"Nugget: {topicName}")
 
+## Prints a list of all available nugget topic files.
+proc showAllSnippetFiles() =
+  let snippetPath = getNuggetsDir()
+  if snippetPath.isEmptyOrWhitespace:
+    printError("No available nuggets.")
+
+  printPanel("Available nuggets", "")
+  for entry in walkDir(snippetPath):
+    if entry.kind == pcFile and entry.path.endsWith(".txt"):
+      let fileName = extractFileName(entry.path)
+      echo fileName
+
+## Lists all snippets from the current topic in fzf and displays the selection.
 proc listSnippets() =
   let current = getActiveNuggetPath()
   if current.len == 0:
@@ -325,8 +409,12 @@ proc listSnippets() =
       except ValueError:
         printError("Invalid selection")
 
+## Searches for snippets across all topics.
+## It takes an optional search term from the command line; if not provided,
+## it prompts the user to enter one.
+## Params:
+##   searchTerm: An optional search term.
 proc searchNuggets(searchTerm: string = "") =
-  ## Search for snippets across all topics
   let query = getSearchQuery(searchTerm)
 
   if query.len == 0:
@@ -346,6 +434,7 @@ proc searchNuggets(searchTerm: string = "") =
 
   handleSearchResults(results, query)
 
+## Merges the content of all nugget files into a single `ALL_NUGGETS.txt` file.
 proc mergeNuggets() =
   let directory = getNuggetsDir()
   let outFile = joinPath(directory, "ALL_NUGGETS.txt")
@@ -359,6 +448,8 @@ proc mergeNuggets() =
   writeFile(outFile, allContent)
   printSuccess("Merged all nuggets to ALL_NUGGETS.txt")
 
+## Checks if the active topic has not been changed for more than a week.
+## If it's been too long, it prints a reminder panel.
 proc checkWeekly() =
   let link = getDefaultLinkPath()
   if not symlinkExists(link) and not fileExists(link): return
@@ -375,20 +466,23 @@ proc checkWeekly() =
     discard
 
 # --- Main ---
-
+## Prints the help message with all command-line options.
 proc showHelp() =
   echo """
   Python Nuggets Univ (Nim Port)
   
-  -c          Change Topic (fzf)
-  -e          Edit current topic (nvim)
-  -l          List/Browse snippets in current topic (fzf)
-  -n          New Topic
-  -m          Merge all topics
+  -c          Change nugget (fzf)
+  -e          Edit current nugget (nvim)
+  -l          List/Browse snippets in current nugget (fzf)
+  -n          New nugget
+  -m          Merge all nuggets
   -s [term]   Search for term across all nuggets
+  -S          Show all available nuggets
   -R          Random Snippet (Default)
   """
 
+## The main entry point of the script.
+## Parses command-line arguments and calls the appropriate action procedure.
 proc main() =
   let params = commandLineParams()
   checkWeekly()
@@ -410,6 +504,7 @@ proc main() =
       else:
         # Prompt for search term
         searchNuggets()
+    of "-S": showAllSnippetFiles()
     of "-R": randomSnippet()
     of "-h", "--help": showHelp()
     else: randomSnippet()

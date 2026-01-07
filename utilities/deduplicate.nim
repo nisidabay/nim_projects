@@ -1,3 +1,5 @@
+# Nim
+#
 # Remove duplicate consecutive characters
 
 proc deduplicateAdjacent(s: string): string =
