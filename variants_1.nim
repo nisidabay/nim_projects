@@ -1,3 +1,7 @@
+# Nim
+#
+# Use of variants
+
 import std/times
 import std/monotimes
 import std/os # Required for sleep
