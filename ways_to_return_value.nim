@@ -1,6 +1,6 @@
-# This file shows how to return values from procedures in Nim using implicit
- # returns, explicit 'return' statements, and manipulating the 'result'
- # variable.
+# Nim
+# 
+# Ways to return values in Nim
 
 proc implicit: string =
   "I will be returned"
