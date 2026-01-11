@@ -1,4 +1,8 @@
-import std/math # Required for PI
+# Nim
+#
+# Use of variants. Way to represent multiple values using a single type.
+
+import std/math
 
 type
   ShapeKind = enum
