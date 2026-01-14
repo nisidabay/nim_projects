@@ -1,27 +1,18 @@
+import std/strutils, strformat
 
-type
-  Person = object
-    ## Value type (allocated on stack)
-    name: string
-    age: int
+proc applyToJobs(number: int, title: string) =
+  echo fmt("I'm applying to {number} {title}")
 
-proc getUsername(prompt: string = "Enter username: "): string =
-  ## Uses the implicit 'result' variable.
-  ## 'result' is initialized to the type's default value (empty string here).
-  stdout.write prompt
-  stdout.flushFile() # Ensure prompt appears before input
+proc isEven(number: int): bool =
+  number mod 2 == 0
 
-  try:
-    result = stdin.readLine()
-  except EOFError:
-    # Handle Ctrl+D gracefully
-    result = "anonymous"
-  except IOError as e:
-    # Handle system-level I/O failures
-    stderr.writeLine "Failed to read input: ", e.msg
-    quit(1)
+proc alphabets(word: string): (bool, bool) =
+  (word.contains("a"), word.contains("z"))
 
-when isMainModule:
-  let user = getUsername()
-  let p = Person(name: user, age: 25)
-  echo "Created person: ", p.name, " (Age: ", p.age, ")"
+proc main() =
+  applyToJobs(35, "Rust Developer")
+  echo "Is even 8? ", isEven(8)
+  echo "Is even 9? ", isEven(9)
+  echo "Has aardark an a and z? ", alphabets("aardvark")
+
+main()
