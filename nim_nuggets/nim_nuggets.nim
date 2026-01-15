@@ -25,10 +25,8 @@ type
     preview: string
 
 # --- Helper for printPanel ---
-## Calculates the length of the longest line in a given string.
-## Params:
-##   text: The multi-line string to analyze.
-## Returns: The integer length of the longest line.
+#   text: The multi-line string to analyze.
+# Returns: The integer length of the longest line.
 proc longestLineLength(text: string): int =
   var maxLen = 0
   for line in text.splitLines():
@@ -455,7 +453,9 @@ proc checkWeekly() =
   if not symlinkExists(link) and not fileExists(link): return
 
   try:
-    let info = getFileInfo(link)
+    # Use followSymlink = false to get the link's creation time,
+    # not the target file's modification time.
+    let info = getFileInfo(link, followSymlink = false)
     let currentTime = getTime()
     let diff = currentTime - info.lastWriteTime
 
@@ -511,3 +511,4 @@ proc main() =
 
 when isMainModule:
   main()
+
