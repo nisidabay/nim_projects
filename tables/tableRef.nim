@@ -1,24 +1,21 @@
-# Nim
-#
-# Example of TableRef. This is a pointer not the whole table
 import std/tables
 
-# Use TableRef so the 'cache' is shared across proc calls
 type Cache = TableRef[string, string]
+var counter = 0
 
 proc loadData(cache: Cache, query: string): string =
   if cache.hasKey(query):
-    echo "Hit: " & query
-    return cache[query]
+    echo "✓ HIT: Found in cache"
+    return "Cached: " & cache[query]
+  else:
+    inc counter
+    echo "✗ MISS: Cached value"
+    let computedResult = $query & " = " & $counter
+    cache[query] = computedResult
+    return computedResult
 
-  echo "Miss: " & query
-  let computedResult = "Result for " & query
-  cache[query] = computedResult
-  return computedResult
-
-# Initialize the Reference Table
 var appCache: Cache = newTable[string, string]()
 
-discard loadData(appCache, "user:1") # Miss
-discard loadData(appCache, "user:1") # Hit
-discard loadData(appCache, "user:2") # Miss
+echo loadData(appCache, "user1") # CACHE MISS - returns #1
+echo loadData(appCache, "user1") # CACHE HIT - returns #1 (same as above)
+echo loadData(appCache, "user2") # CACHE MISS - returns #2 (different!)
