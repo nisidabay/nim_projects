@@ -480,6 +480,7 @@ proc showHelp() =
   nuggets -s [term]   Search for term across all nuggets
   nuggets -S          Show all available nuggets
   nuggets -R          Random Snippet (Default)
+  nuggets -h          Show this help
   nuggets -v          Show current version
   """
 
