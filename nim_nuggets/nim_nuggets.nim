@@ -11,6 +11,7 @@ import std/os
 import std/osproc
 
 # --- Configuration ---
+const Version = "1.0.0"
 const Separator = "•••"
 const BaseDir = "bin"
 const AppDirName = "nim_nuggets"
@@ -469,16 +470,17 @@ proc checkWeekly() =
 ## Prints the help message with all command-line options.
 proc showHelp() =
   echo """
-  Python Nuggets Univ (Nim Port)
+  Nim Nuggets - Kind of 'fortune' app for showing Nim snippets
   
-  -c          Change nugget (fzf)
-  -e          Edit current nugget (nvim)
-  -l          List/Browse snippets in current nugget (fzf)
-  -n          New nugget
-  -m          Merge all nuggets
-  -s [term]   Search for term across all nuggets
-  -S          Show all available nuggets
-  -R          Random Snippet (Default)
+  nuggets -c          Change nugget (fzf)
+  nuggets -e          Edit current nugget (nvim)
+  nuggets -l          List/Browse snippets in current nugget (fzf)
+  nuggets -n          New nugget
+  nuggets -m          Merge all nuggets
+  nuggets -s [term]   Search for term across all nuggets
+  nuggets -S          Show all available nuggets
+  nuggets -R          Random Snippet (Default)
+  nuggets -v          Show current version
   """
 
 ## The main entry point of the script.
@@ -507,6 +509,7 @@ proc main() =
     of "-S": showAllSnippetFiles()
     of "-R": randomSnippet()
     of "-h", "--help": showHelp()
+    of "-v": echo Version
     else: randomSnippet()
 
 when isMainModule:
