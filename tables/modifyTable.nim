@@ -10,6 +10,7 @@ proc modifyTable(src: MyTableRef) =
   # Change existing values
   src["a"] = 100
 
+# We use newTable here.
 var t1: MyTableRef = newTable[string, int]()
 t1["a"] = 1
 t1["b"] = 2
