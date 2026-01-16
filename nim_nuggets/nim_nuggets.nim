@@ -509,7 +509,7 @@ proc main() =
     of "-S": showAllSnippetFiles()
     of "-R": randomSnippet()
     of "-h", "--help": showHelp()
-    of "-v": echo Version
+    of "-v": echo Version & " - nisidabay 2025"
     else: randomSnippet()
 
 when isMainModule:
