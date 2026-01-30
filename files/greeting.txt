@@ -1,0 +1,2 @@
+Hello from Nim!
+File operations made simple.
