@@ -2,7 +2,7 @@
 #
 # Group by pattern using tables
 
-import std/tables, std/strformat
+import std/[tables, strformat]
 
 type Employee = object
   id: int

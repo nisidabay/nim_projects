@@ -1,3 +1,5 @@
+# Nim
+
 import std/[hashes, tables, algorithm] # Added algorithm for sorting
 
 type Point = object

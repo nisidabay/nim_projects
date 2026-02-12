@@ -1,3 +1,5 @@
+# Nim - Use of TableRef as cache
+
 import std/tables
 
 type Cache = TableRef[string, string]
@@ -5,11 +7,11 @@ var counter = 0
 
 proc loadData(cache: Cache, query: string): string =
   if cache.hasKey(query):
-    echo "✓ HIT: Found in cache"
-    return "Cached: " & cache[query]
+    echo "Found in cache"
+    return cache[query]
   else:
     inc counter
-    echo "✗ MISS: Cached value"
+    echo "Not found. Adding to cache"
     let computedResult = $query & " = " & $counter
     cache[query] = computedResult
     return computedResult

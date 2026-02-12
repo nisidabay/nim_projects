@@ -1,66 +1,49 @@
 # Nim
 #
-# Todo application
-
+# Todo script
 import strutils, json, os, strformat, osproc
 
 # --- Todo Item Type ---
 type
-  Priority = enum
-    high, medium, low
-
-  Category = enum
-    computer_language, gym, personal
-
-type
   Todo = ref object
     task: string
     completed: bool
-    priority: Priority
-    category: Category
+    priority: string # Optional: "high", "medium", "low"
+    category: string # Optional: "work", "personal", "shopping", etc.
     time: string
     sound: bool
 
 # --- Global Todo List ---
-const VERSION = "0.0.2"
 var todos: seq[Todo] = @[]
-let SCRIPTDIR = getHomeDir() / "bin" / "nim_todos"
-let TODO_FILE = SCRIPTDIR / "todos.json"
-let SOUND_FILE = SCRIPTDIR / "bell.mp3"
+let scriptDir = getHomeDir() / "bin" / "nim_todos"
+let TODO_FILE = scriptDir / "todos.json"
+let SOUND_FILE = scriptDir / "bell.mp3"
 
-# --- Procedures ---
-
-# Ensure the SCRIPTDIR exists
+## checkScriptDir - description placeholder
+## Params: (add parameters description)
+## Returns: (add return description)
 proc checkScriptDir() =
-  if not dirExists(SCRIPTDIR):
+  if not dirExists(scriptDir):
     try:
-      createDir(SCRIPTDIR)
-    except OSError as e:
+      createDir(scriptDir)
+    except Exception as e:
       echo &"Error: {e.msg}"
 
-# Ensure a default TODO_FILE
-proc touchTodos() =
-  if not fileExists(TODO_FILE):
-    try:
-      writeFile(TODO_FILE, "[]")
-      echo fmt"Created default 'todos.json' file at '{TODO_FILE}'"
-    except IOError:
-      echo fmt"Warning: Could not write default 'todos.json' to '{TODO_FILE}'"
-
-# Load todos from file
+## loadTodos - description placeholder
+## Params: (add parameters description)
+## Returns: (add return description)
 proc loadTodos() =
   checkScriptDir()
-
   if fileExists(TODO_FILE):
     try:
       let data = readFile(TODO_FILE)
       todos = parseJson(data).to(seq[Todo])
     except Exception as e:
       echo &"Error loading todos: {e.msg}"
-  else:
-    touchTodos()
 
-# Save todos to TODO_FILE
+## saveTodos - description placeholder
+## Params: (add parameters description)
+## Returns: (add return description)
 proc saveTodos() =
   try:
     let data = %*(todos)
@@ -68,93 +51,49 @@ proc saveTodos() =
   except Exception as e:
     echo &"Error saving todos: {e.msg}"
 
-
-# Helper: Convert enum to its string representation
-proc toEnumString(e: Priority): string =
-  case e:
-    of Priority.high: "high"
-    of Priority.medium: "medium"
-    of Priority.low: "low"
-
-proc toEnumString(e: Category): string =
-  case e:
-    of Category.computer_language: "computer_language"
-    of Category.gym: "gym"
-    of Category.personal: "personal"
-
-# Display Todos
+# --- Helper: Display Todos ---
+## displayTodos - description placeholder
+## Params: (add parameters description)
+## Returns: (add return description)
 proc displayTodos() =
   if todos.len == 0:
-    echo "✨ No todos yet! Start adding some today!"
+    echo "No todos yet! ✨"
     return
 
-  echo "\n" & repeat("-", 50)
-  echo "📊 TO-DO LIST — Current Status"
-  echo repeat("-", 50)
-
+  echo "\n--- Todos ---"
   for i, todo in todos:
-    let status = if todo.completed: "😂" else: "😠"
-
-    # Color code based on priority
-    let priorityColor = case todo.priority:
-      of Priority.high: "\x1b[31m"   # Red
-      of Priority.medium: "\x1b[33m" # Yellow
-      of Priority.low: "\x1b[32m"    # Green
-
-    # Color code based on category
-    let categoryColor = case todo.category:
-      of Category.computer_language: "\x1b[36m" # Cyan
-      of Category.gym: "\x1b[35m"               # Magenta
-      of Category.personal: "\x1b[34m"          # Blue
-
-    let priorityStr = &"{priorityColor}{toEnumString(todo.priority)}\x1b[0m"
-    let categoryStr = &"{categoryColor}{toEnumString(todo.category)}\x1b[0m"
-    let timeStr = if todo.time != "": &" 🕒 {todo.time}" else: ""
+    let status = if todo.completed: "[X]" else: "[ ]"
+    let priorityStr = if todo.priority != "": &" [{todo.priority}]" else: ""
+    let categoryStr = if todo.category != "": &" ({todo.category})" else: ""
+    let timeStr = if todo.time != "": &" 🕐{todo.time}" else: ""
     let soundStr = if todo.sound: " 🔊" else: ""
+    echo &"{i + 1}. {status} {todo.task}{priorityStr}{categoryStr}{timeStr}{soundStr}"
+  echo "---------------"
 
-    echo &"\n{i + 1}. [{status}] P:{priorityStr} C:{categoryStr} "
-    if todo.completed:
-      echo &"   \x1b[32m {todo.task}\x1b[0m {timeStr}{soundStr}"
-    else:
-      echo &"📌 \x1b[31m {todo.task}\x1b[0m {timeStr}{soundStr}"
-
-  echo repeat("-", 50)
-
-  # Show progress summary
-  let total = todos.len
-  var completed = 0
-  for todo in todos:
-    if todo.completed:
-      inc(completed)
-
-  if total > 0:
-    let percent = (completed / total * 100.0)
-    echo &"\n✅ Progress: {completed}/{total} ({percent:.1f}% complete)"
-
-# Add a new todo
+## addTodo - description placeholder
+## Params: (add parameters description)
+## Returns: (add return description)
 proc addTodo(task: string) =
   if task.strip().len == 0:
     echo "Cannot add an empty task."
     return
 
-  # Default values for enums (can be overridden later)
-  todos.add(Todo(
-    task: task,
-    completed: false,
-    priority: Priority.low, # default
-    category: Category.computer_language, # default
-    time: "",
-    sound: false
-  ))
+  todos.add(Todo(task: task, completed: false, priority: "", category: "",
+      time: "", sound: false))
   echo &"Added: '{task}'"
   saveTodos()
   displayTodos()
 
-# List all todos
+## listTodos - description placeholder
+## Params: (add parameters description)
+## Returns: (add return description)
 proc listTodos() =
   displayTodos()
 
-# Parse index from argument (1-indexed)
+# --- Helper: Get Index from Arg ---
+## parseIndex - description placeholder
+## Params: (add parameters description)
+## Returns: (add return description)
 proc parseIndex(arg: string): int =
   if arg.strip().len == 0:
     echo "Error: No todo number provided."
@@ -171,7 +110,10 @@ proc parseIndex(arg: string): int =
     echo &"Error: '{arg}' is not a valid number."
     return -1
 
-# Complete/Mark as done
+# --- Command: Complete / Done ---
+## completeTodo - description placeholder
+## Params: (add parameters description)
+## Returns: (add return description)
 proc completeTodo(index: int) =
   if index < 0: return
 
@@ -184,7 +126,9 @@ proc completeTodo(index: int) =
 
   displayTodos()
 
-# Remove a todo by index
+## removeTodo - description placeholder
+## Params: (add parameters description)
+## Returns: (add return description)
 proc removeTodo(index: int) =
   if index < 0: return
 
@@ -194,7 +138,10 @@ proc removeTodo(index: int) =
   saveTodos()
   displayTodos()
 
-# Edit task of a todo
+# --- Command: Edit Task ---
+## editTodo - description placeholder
+## Params: (add parameters description)
+## Returns: (add return description)
 proc editTodo(index: int, newTask: string) =
   if index < 0: return
 
@@ -208,7 +155,10 @@ proc editTodo(index: int, newTask: string) =
   saveTodos()
   displayTodos()
 
-# Schedule todo (with time and optional sound)
+# --- Command: Set Notification ---
+## scheduleTodo - description placeholder
+## Params: (add parameters description)
+## Returns: (add return description)
 proc scheduleTodo(index: int, timeStr: string, sound: bool): bool =
   # Validate index
   if index < 0 or index >= todos.len:
@@ -222,11 +172,9 @@ proc scheduleTodo(index: int, timeStr: string, sound: bool): bool =
 
   # Verify files exist
   if sound and not fileExists(musicFile):
-    let baseName = splitFile(musicFile)
-    let name = baseName.name & baseName.ext
-
-    echo "❌ Warning: Sound file not found at: ", musicFile
-    echo &"👉 Place {name} in ", SCRIPTDIR
+    echo "❌ Warning: Sound file not found: ", musicFile
+    echo "👉 Place 'bell.mp3' in ", scriptDir
+    # Continue without sound instead of failing
     return false
 
   if not fileExists(player):
@@ -265,6 +213,7 @@ proc scheduleTodo(index: int, timeStr: string, sound: bool): bool =
   let result = execCmdEx(cmd, options = {poStdErrToStdOut})
 
   if result.exitCode == 0:
+    # Save the schedule info to the todo
     todos[index].time = timeStr
     todos[index].sound = sound
     saveTodos()
@@ -280,7 +229,10 @@ proc scheduleTodo(index: int, timeStr: string, sound: bool): bool =
     echo "Error output: ", result.output.strip()
     return false
 
-# Set priority (valid values: high, medium, low)
+# --- Command: Set Priority ---
+## setPriority - description placeholder
+## Params: (add parameters description)
+## Returns: (add return description)
 proc setPriority(index: int, priority: string) =
   if index < 0: return
 
@@ -289,25 +241,15 @@ proc setPriority(index: int, priority: string) =
     echo &"Error: Priority must be one of: {validPriorities.join(\", \")}"
     return
 
-  # Convert string to enum
-  var p: Priority
-  case priority.toLower()
-  of "high":
-    p = Priority.high
-  of "medium":
-    p = Priority.medium
-  of "low":
-    p = Priority.low
-  else:
-    echo &"Invalid priority value: {priority}"
-    return
-
-  todos[index].priority = p
+  todos[index].priority = priority
   echo &"Set priority '{priority}' for task: '{todos[index].task}'"
   saveTodos()
   displayTodos()
 
-# Set category (valid values: computer_language, gym, personal)
+# --- Command: Set Category ---
+## setCategory - description placeholder
+## Params: (add parameters description)
+## Returns: (add return description)
 proc setCategory(index: int, category: string) =
   if index < 0: return
 
@@ -315,70 +257,31 @@ proc setCategory(index: int, category: string) =
     echo "Cannot set empty category."
     return
 
-  # Validate the category
-  let validCategories = ["computer_language", "gym", "personal"]
-  if category notin validCategories:
-    echo &"Error: Category must be one of: {validCategories.join(\", \")}"
-    return
-
-  var c: Category
-  case category.toLower()
-  of "computerlanguage":
-    c = Category.computer_language
-  of "gym":
-    c = Category.gym
-  of "personal":
-    c = Category.personal
-  else:
-    echo &"Invalid category value: {category}"
-    return
-
-  todos[index].category = c
+  todos[index].category = category
   echo &"Set category '{category}' for task: '{todos[index].task}'"
   saveTodos()
   displayTodos()
 
-# Show help message
+# --- Command: Help ---
+## showHelp - description placeholder
+## Params: (add parameters description)
+## Returns: (add return description)
 proc showHelp() =
   echo """
-USAGE: todo [command] [args]  (no command = list all todos)
+USAGE: todo [command] [args]  (no command = list)
 
 COMMANDS:
+  add <task>                 done|complete <num>
+  list                       rm|remove|del <num>
+  edit <num> <task>          priority <num> high|medium|low
+  category <num> <cat>       schedule <num> <time>
+  sound <num> <time>         help
 
-  add <task>                      → add "Call doctor"
-  edit <num> <new_task>           → edit 1 "Call doctor tomorrow"
-  done | complete <num>           → Mark todo at number <num> as completed
-  rm | remove | del <num>         → Delete the todo at index <num>
-  priority <num> high|medium|low  → Set priority of task at <num> (e.g., 'priority 1 high')
-  category <num> <cat>            → Assign a category to todo at <num> 
-                                    Categories: computer_language, gym, personal
-  schedule <num> <time>           → Schedule a reminder for the task at <num>
-                                    Time format: e.g. 'tomorrow 9:00', '2025-04-05 14:30'
-  sound <num> <time>              → Schedule with sound (same as schedule, but includes audio)
-  list                            → List all todos
-
-📌 EXAMPLES:
-  todo add "Buy groceries"             # Add a new task
-  todo edit 2 "Go to gym"              # Edit task at position 2
-  todo complete 1                      # Mark first item as done
-  todo remove 3                        # Delete third todo
-  todo priority 1 high                 # Set priority of task 1 to 'high'
-  todo category 4 gym                  # Assign 'gym' category to task 4
-  todo schedule 2 "tomorrow 8:00"      # Schedule a reminder (no sound)
-  todo sound 3 "2025-04-06 17:00"      # Schedule with audio notification and bell.mp3
-  todo list                            # Show current to-do list
-
-ℹ️ NOTES:
-  - Todo numbers are 1-indexed.
-  - Tasks must not be empty.
-  - Valid priorities: high, medium, low (case-insensitive).
-  - Valid categories: computer_language, gym, personal (case-insensitive).
-  - Time strings must be valid (e.g., 'today 5pm', '2025-04-06 14:30').
-  - Sound requires the file 'bell.mp3' to exist in ~/bin/nim_todos/.
-  - The command-line tool will save todos to todos.json.
-
-⚠️ TIP:
-  Run 'todo help' or 'todo --help' at any time for this message.
+EXAMPLES:
+  todo add "Buy groceries"           # Add task
+  todo priority 1 high               # Set priority
+  todo sound 1 "tomorrow 9:00"       # Schedule with sound
+  todo done 1                        # Mark complete
 """
 
 # --- Main Program Logic ---

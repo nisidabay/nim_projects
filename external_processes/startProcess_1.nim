@@ -1,5 +1,5 @@
 # startProcess
-# Best for  asynchronous execution
+# Best for run a shell command and interact with its output
 # Writing to stdin, handling sterr separately, or managing
 # background jobs
 
